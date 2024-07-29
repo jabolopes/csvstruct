@@ -217,6 +217,10 @@ func (r *Reader) Clear() {
 // Returns io.EOF when the end of file is reached. When an error is returned,
 // the first return value is always nil. In other words, this either returns
 // valid data or it returns an error, but never both simultaneously.
+//
+// IMPORTANT: Retains ownership of the returned `[]interface{}` value and
+// subsequent calls to `Read` may overwrite these values. As such, if the caller
+// intends to retain these values, the caller should copy them.
 func (r *Reader) Read() ([]interface{}, error) {
 	if r.permanentErr != nil {
 		return nil, r.permanentErr
