@@ -236,6 +236,7 @@ func (r *Reader) Read() ([]interface{}, error) {
 		}
 
 		if err := r.createDescriptors(row); err != nil {
+			r.Clear()
 			r.permanentErr = err
 			return nil, err
 		}
