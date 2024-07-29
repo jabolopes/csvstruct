@@ -194,6 +194,38 @@ func (r *Reader) SetSchema(components []interface{}) {
 	r.schema = schema
 }
 
+// SetPrototypeSchema is an alternative approach to defining the schema. The
+// prototype is a struct type that contains fields, where the field name should
+// correspond to the component name that appears in the CSV header, and the
+// field type corresponds to the Go type that will be parsed and returned to the
+// caller.
+//
+// Example:
+//
+//   data.csv:
+//     CharacterInfo.Name,CharacterHP.HP
+//     Alex,100
+//     Jayden,120
+//
+//   program.go:
+//     type CharacterInfo struct { Name string }
+//     type CharacterHP struct { HP int }
+//
+//     type Prototype struct {
+//       CharacterInfo CharacterInfo
+//       CharacterHP CharacterHP
+//     }
+//
+//     reader.SetPrototypeSchema(reflect.TypeOf(Prototype{}))
+func (r *Reader) SetPrototypeSchema(typ reflect.Type) {
+	schema := map[string]reflect.Type{}
+	fields := reflect.VisibleFields(typ)
+	for _, field := range fields {
+		schema[field.Name] = field.Type
+	}
+	r.schema = schema
+}
+
 // Clears part of the internal state so that this is ready to continue parsing,
 // namely, it clears the permanent error and all the internal descriptors. After
 // Clear() is called, Read() will expect the next row to be a CSV header. This

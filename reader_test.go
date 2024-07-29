@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -70,6 +71,45 @@ func TestReader(t *testing.T) {
 
 	reader := csvstruct.NewReader(csv.NewReader(strings.NewReader(testData)))
 	reader.SetSchema([]interface{}{Character{}, Attributes{}, Monster{}})
+
+	for {
+		got, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("Read() err = %v; want %v", err, nil)
+		}
+
+		if diff := cmp.Diff(got, want[0]); diff != "" {
+			t.Fatalf("Read() = %v; want %v\ndiff: %v", got, want[0], diff)
+		}
+		want = want[1:]
+	}
+}
+
+type Prototype struct {
+	Character  Character
+	Attributes Attributes
+	Monster    Monster
+}
+
+func TestReader_SetPrototypeSchema(t *testing.T) {
+	want := [][]interface{}{
+		[]interface{}{
+			Character{"Alex", "Fighter"},
+			Attributes{100, 10},
+			Monster{},
+		},
+		[]interface{}{
+			Character{"Jayden", "Wizard"},
+			Attributes{90, 20},
+			Monster{},
+		},
+	}
+
+	reader := csvstruct.NewReader(csv.NewReader(strings.NewReader(testData)))
+	reader.SetPrototypeSchema(reflect.TypeOf(Prototype{}))
 
 	for {
 		got, err := reader.Read()
