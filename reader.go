@@ -15,6 +15,12 @@ import (
 // 'MyComponent' and 'MyField'.
 func parseHeaderColumnName(qualName string) (string, string, error) {
 	splits := strings.SplitN(qualName, ".", 2)
+	if len(splits) == 1 {
+		componentName := splits[0]
+		fieldName := ""
+		return componentName, fieldName, nil
+	}
+
 	if len(splits) != 2 {
 		return "", "", fmt.Errorf("expected qualified name, e.g. 'MyComponent.MyField'; got %v", qualName)
 	}
@@ -80,24 +86,27 @@ func (r *Reader) validateHeaderColumnName(componentName, fieldName string) (refl
 	return componentType, nil
 }
 
-func (r *Reader) createDescriptor(componentType reflect.Type, fieldName string) {
-	// Create a resultDescriptor if needed.
-	//
-	// If a new component type is discovered, the resultDescriptor is extended
-	// with information about that component.
-	//
-	// If the component type was already found in a previous column, then the
-	// resultDescriptor is not updated.
+// Create a resultDescriptor if needed.
+//
+// If a new component type is discovered, the resultDescriptor is extended with
+// information about that component.
+//
+// If the component type was already found in a previous column, then the
+// resultDescriptor is not updated.
+func (r *Reader) extendResultDescriptor(componentType reflect.Type) int {
 	resultIndex := slices.Index(r.resultDescriptor.componentTypes, componentType)
 	if resultIndex == -1 {
 		resultIndex = len(r.resultDescriptor.componentTypes)
 		r.resultDescriptor.componentTypes = append(r.resultDescriptor.componentTypes, componentType)
 		r.resultDescriptor.componentValues = append(r.resultDescriptor.componentValues, reflect.New(componentType))
 	}
+	return resultIndex
+}
 
-	// Create a columnDescriptor.
-	//
-	// The column descriptor points back to the resultDescriptor via index.
+// Create a columnDescriptor.
+//
+// The column descriptor points back to the resultDescriptor via index.
+func (r *Reader) createColumnDescriptor(resultIndex int, fieldName string) {
 	r.columnDescriptors = append(r.columnDescriptors, columnDescriptor{resultIndex, fieldName})
 }
 
@@ -115,7 +124,8 @@ func (r *Reader) createDescriptors(row []string) error {
 			return err
 		}
 
-		r.createDescriptor(componentType, fieldName)
+		resultIndex := r.extendResultDescriptor(componentType)
+		r.createColumnDescriptor(resultIndex, fieldName)
 	}
 
 	r.resultDescriptor.results = make([]interface{}, len(r.resultDescriptor.componentTypes))
