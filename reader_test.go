@@ -11,9 +11,9 @@ import (
 	"github.com/jabolopes/csvstruct"
 )
 
-const testData = `Character.Name,Character.Class,Attributes.HP,Attributes.Damage
-Alex,Fighter,100,10
-Jayden,Wizard,90,20
+const testData = `Character.Name,Character.Class,Attributes.HP,Attributes.Damage,Monster
+Alex,Fighter,100,10,
+Jayden,Wizard,90,20,
 `
 
 type Character struct {
@@ -26,9 +26,11 @@ type Attributes struct {
 	Damage int
 }
 
+type Monster struct{}
+
 func ExampleReader() {
 	reader := csvstruct.NewReader(csv.NewReader(strings.NewReader(testData)))
-	reader.SetSchema([]interface{}{Character{}, Attributes{}})
+	reader.SetSchema([]interface{}{Character{}, Attributes{}, Monster{}})
 
 	for {
 		components, err := reader.Read()
@@ -41,12 +43,15 @@ func ExampleReader() {
 
 		fmt.Printf("%#v\n", components[0].(Character))
 		fmt.Printf("%#v\n", components[1].(Attributes))
+		fmt.Printf("%#v\n", components[2].(Monster))
 	}
 
 	// Output: csvstruct_test.Character{Name:"Alex", Class:"Fighter"}
 	// csvstruct_test.Attributes{HP:100, Damage:10}
+	// csvstruct_test.Monster{}
 	// csvstruct_test.Character{Name:"Jayden", Class:"Wizard"}
 	// csvstruct_test.Attributes{HP:90, Damage:20}
+	// csvstruct_test.Monster{}
 }
 
 func TestReader(t *testing.T) {
@@ -54,15 +59,17 @@ func TestReader(t *testing.T) {
 		[]interface{}{
 			Character{"Alex", "Fighter"},
 			Attributes{100, 10},
+			Monster{},
 		},
 		[]interface{}{
 			Character{"Jayden", "Wizard"},
 			Attributes{90, 20},
+			Monster{},
 		},
 	}
 
 	reader := csvstruct.NewReader(csv.NewReader(strings.NewReader(testData)))
-	reader.SetSchema([]interface{}{Character{}, Attributes{}})
+	reader.SetSchema([]interface{}{Character{}, Attributes{}, Monster{}})
 
 	for {
 		got, err := reader.Read()

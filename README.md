@@ -79,25 +79,30 @@ The CSV data must have the following format:
 
 The first row of the CSV data is the header and it must be present.
 
-Each header column contains the name of a component followed by a
-period `.`, followed by a field name, e.g., `MyComponent.MyField`.
+Each header column contains the name of a component followed optionally by a
+period `.` and a field name, e.g., `MyComponent.MyField`. It's also allowed to
+specify only the component name, e.g., `MyComponent`.
 
-The `MyComponent` must correspond to a Go type with the same
-name. Package names associated with the type are not used. For
-example, if the full Go type name is `mypackage.MyComponent`, only
-`MyComponent` is used.
+The `MyComponent` must correspond to a Go type with the same name. Package names
+associated with the type are not used. For example, if the full Go type name is
+`mypackage.MyComponent`, only `MyComponent` is used.
 
-The `MyField` must be a valid field of `MyComponent` and it must be
-capitalized (i.e., exported).
+If a field name is given, e.g., `MyField`, it must be a valid field of
+`MyComponent` and it must be capitalized (i.e., exported).
+
+If a field name is not given, then the component is default initialized and
+returned by `Reader.Read`. This allows adding default initialized components to
+entities through CSV, without having to add special rules in the CSV parsing
+code.
 
 It's not required to put in the CSV header all the fields of
-`MyComponent`. Rather, only the fields that should be imported by
-those CSV data are present.
+`MyComponent`. Rather, only the fields that should be imported by those CSV data
+are present.
 
-It's possible to have multiple CSV headers. The library caller must be
-able to determine when a new CSV header is about to come up as the
-next row. In this case, the caller can use `Reader.Clear`, optionally
-followed by `Reader.SetSchema`, to start a new table of CSV data.
+It's possible to have multiple CSV headers. The library caller must be able to
+determine when a new CSV header is about to come up as the next row. In this
+case, the caller can use `Reader.Clear`, optionally followed by
+`Reader.SetSchema`, to start a new table of CSV data.
 
 ### Data rows
 
@@ -112,4 +117,7 @@ For example, a field of type string can contain either an empty or
 non-empty cell (without quotes) since that is compatible with the
 string type.
 
-A field of type `Int` must contain a non-empty numerical cell.
+A field of type `Int` can either an empty or non-empty cell containing
+a numerical value.
+
+Empty cells default initialize fields according to Go semantics.

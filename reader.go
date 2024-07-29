@@ -12,7 +12,8 @@ import (
 )
 
 // Parses a qualified name, e.g., 'MyComponent.Myfield', into its parts, e.g.,
-// 'MyComponent' and 'MyField'.
+// 'MyComponent' and 'MyField'. It's also valid if the name only contains the
+// component name without a field, e.g., 'MyComponent'.
 func parseHeaderColumnName(qualName string) (string, string, error) {
 	splits := strings.SplitN(qualName, ".", 2)
 	if len(splits) == 1 {
@@ -73,14 +74,18 @@ type Reader struct {
 	columnDescriptors []columnDescriptor
 }
 
+// Validates a pair of component and field names. The field name can be empty,
+// in which case only the component name is validated.
 func (r *Reader) validateHeaderColumnName(componentName, fieldName string) (reflect.Type, error) {
 	componentType, ok := r.schema[componentName]
 	if !ok {
 		return nil, fmt.Errorf("component type %q is not defined in the schema", componentName)
 	}
 
-	if _, ok := componentType.FieldByName(fieldName); !ok {
-		return nil, fmt.Errorf("component type %q does not have field %q", componentName, fieldName)
+	if len(fieldName) > 0 {
+		if _, ok := componentType.FieldByName(fieldName); !ok {
+			return nil, fmt.Errorf("component type %q does not have field %q", componentName, fieldName)
+		}
 	}
 
 	return componentType, nil
@@ -105,7 +110,8 @@ func (r *Reader) extendResultDescriptor(componentType reflect.Type) int {
 
 // Create a columnDescriptor.
 //
-// The column descriptor points back to the resultDescriptor via index.
+// The column descriptor points back to the resultDescriptor via index. The
+// field name must not be empty.
 func (r *Reader) createColumnDescriptor(resultIndex int, fieldName string) {
 	r.columnDescriptors = append(r.columnDescriptors, columnDescriptor{resultIndex, fieldName})
 }
@@ -125,7 +131,10 @@ func (r *Reader) createDescriptors(row []string) error {
 		}
 
 		resultIndex := r.extendResultDescriptor(componentType)
-		r.createColumnDescriptor(resultIndex, fieldName)
+
+		if len(fieldName) > 0 {
+			r.createColumnDescriptor(resultIndex, fieldName)
+		}
 	}
 
 	r.resultDescriptor.results = make([]interface{}, len(r.resultDescriptor.componentTypes))
@@ -144,6 +153,10 @@ func (r *Reader) parseRow() error {
 	}
 
 	for columnNum, cell := range row {
+		if len(cell) == 0 {
+			continue
+		}
+
 		columnDescriptor := r.columnDescriptors[columnNum]
 
 		value := r.resultDescriptor.componentValues[columnDescriptor.resultIndex]
