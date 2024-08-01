@@ -39,7 +39,7 @@ func setFieldFromCell(field reflect.Value, cell string) error {
 			return err
 		}
 		if field.OverflowInt(value) {
-			return fmt.Errorf("Cell %q contains a value that is too large for %s", field.Kind())
+			return fmt.Errorf("cell %q contains a value that is too large for %s", cell, field.Kind())
 		}
 		field.SetInt(value)
 
@@ -49,7 +49,7 @@ func setFieldFromCell(field reflect.Value, cell string) error {
 			return err
 		}
 		if field.OverflowUint(value) {
-			return fmt.Errorf("Cell %q contains a value that is too large for %s", field.Kind())
+			return fmt.Errorf("cell %q contains a value that is too large for %s", cell, field.Kind())
 		}
 		field.SetUint(value)
 
@@ -78,7 +78,7 @@ func setFieldFromCell(field reflect.Value, cell string) error {
 		field.SetBool(value)
 
 	default:
-		return fmt.Errorf("Unhandled kind %s", field.Kind())
+		return fmt.Errorf("unhandled kind %s", field.Kind())
 	}
 
 	return nil
