@@ -31,6 +31,59 @@ func parseHeaderColumnName(qualName string) (string, string, error) {
 	return componentName, fieldName, nil
 }
 
+func setFieldFromCell(field reflect.Value, cell string) error {
+	switch field.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		value, err := strconv.ParseInt(cell, 0, 64)
+		if err != nil {
+			return err
+		}
+		if field.OverflowInt(value) {
+			return fmt.Errorf("Cell %q contains a value that is too large for %s", field.Kind())
+		}
+		field.SetInt(value)
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		value, err := strconv.ParseUint(cell, 0, 64)
+		if err != nil {
+			return err
+		}
+		if field.OverflowUint(value) {
+			return fmt.Errorf("Cell %q contains a value that is too large for %s", field.Kind())
+		}
+		field.SetUint(value)
+
+	case reflect.Float32:
+		value, err := strconv.ParseFloat(cell, 32)
+		if err != nil {
+			return err
+		}
+		field.SetFloat(value)
+
+	case reflect.Float64:
+		value, err := strconv.ParseFloat(cell, 64)
+		if err != nil {
+			return err
+		}
+		field.SetFloat(value)
+
+	case reflect.String:
+		field.SetString(cell)
+
+	case reflect.Bool:
+		value, err := strconv.ParseBool(cell)
+		if err != nil {
+			return err
+		}
+		field.SetBool(value)
+
+	default:
+		return fmt.Errorf("Unhandled kind %s", field.Kind())
+	}
+
+	return nil
+}
+
 // resultDescriptor is the type information needed to parse row.
 //
 // Each slice is sorted in the order in which this will be returned to the
@@ -162,13 +215,8 @@ func (r *Reader) parseRow() error {
 		value := r.resultDescriptor.componentValues[columnDescriptor.resultIndex]
 
 		field := value.Elem().FieldByName(columnDescriptor.fieldName)
-		if field.Kind() == reflect.Int {
-			cellInt, _ := strconv.Atoi(cell)
-			field.SetInt(int64(cellInt))
-		} else if field.Kind() == reflect.String {
-			field.SetString(cell)
-		} else {
-			return fmt.Errorf("unhandled kind %v", field.Kind())
+		if err := setFieldFromCell(field, cell); err != nil {
+			return err
 		}
 	}
 
