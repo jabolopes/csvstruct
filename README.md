@@ -11,23 +11,28 @@ Import spreadsheets:
 Into Go types:
 
 ```go
-type Info struct { Name string }
-type HP struct { HP int }
-type Damage struct { Damage int }
+type Info struct {
+  Name string
+  Class string
+}
+
+type Attributes struct {
+  HP int
+  Damage int
+}
 
 type Prefab struct {
   Info *Info
-  HP *HP
-  Damage *Damage
+  Attributes *Attributes
 }
 ```
 
 Get typed data:
 
 ```go
-Prefab{Info{"Death 1"}, HP{5}, Damage{100}}
-Prefab{Info{"Death 2"}, HP{10}, Damage{200}}
-Prefab{Info{"Death 3"}, HP{15}, Damage{300}}
+Prefab{Info{"Alex", "Fighter"}, Attributes{100, 10}}
+Prefab{Info{"Mary", "Queen"}, nil}
+Prefab{Info{"Jayden", "Wizard"}, Attributes{90, 20}}
 ```
 
 When working with Google Sheets or Microsoft Excel, export data to CSV and
