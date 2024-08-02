@@ -4,7 +4,6 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -12,12 +11,13 @@ import (
 	"github.com/jabolopes/csvstruct"
 )
 
-const testData = `Character.Name,Character.Class,Attributes.HP,Attributes.Damage,Monster
-Alex,Fighter,100,10,
-Jayden,Wizard,90,20,
+const testData = `Info.Name,Info.Class,Attributes.HP,Attributes.Damage
+Alex,Fighter,100,10
+Jayden,Wizard,90,20
+Mary,Queen,,
 `
 
-type Character struct {
+type Info struct {
 	Name  string
 	Class string
 }
@@ -27,14 +27,17 @@ type Attributes struct {
 	Damage int
 }
 
-type Monster struct{}
+type Prefab struct {
+	Info       *Info
+	Attributes *Attributes
+}
 
 func ExampleReader() {
-	reader := csvstruct.NewReader(csv.NewReader(strings.NewReader(testData)))
-	reader.SetSchema([]interface{}{Character{}, Attributes{}, Monster{}})
+	reader := csvstruct.NewReader[Prefab](csv.NewReader(strings.NewReader(testData)))
 
+	var prefab Prefab
 	for {
-		components, err := reader.Read()
+		err := reader.Read(&prefab)
 		if err == io.EOF {
 			break
 		}
@@ -42,38 +45,39 @@ func ExampleReader() {
 			panic(err)
 		}
 
-		fmt.Printf("%#v\n", components[0].(Character))
-		fmt.Printf("%#v\n", components[1].(Attributes))
-		fmt.Printf("%#v\n", components[2].(Monster))
+		fmt.Printf("%#v\n", prefab.Info)
+		fmt.Printf("%#v\n", prefab.Attributes)
 	}
 
-	// Output: csvstruct_test.Character{Name:"Alex", Class:"Fighter"}
-	// csvstruct_test.Attributes{HP:100, Damage:10}
-	// csvstruct_test.Monster{}
-	// csvstruct_test.Character{Name:"Jayden", Class:"Wizard"}
-	// csvstruct_test.Attributes{HP:90, Damage:20}
-	// csvstruct_test.Monster{}
+	// Output: &csvstruct_test.Info{Name:"Alex", Class:"Fighter"}
+	// &csvstruct_test.Attributes{HP:100, Damage:10}
+	// &csvstruct_test.Info{Name:"Jayden", Class:"Wizard"}
+	// &csvstruct_test.Attributes{HP:90, Damage:20}
+	// &csvstruct_test.Info{Name:"Mary", Class:"Queen"}
+	// (*csvstruct_test.Attributes)(nil)
 }
 
 func TestReader(t *testing.T) {
-	want := [][]interface{}{
-		[]interface{}{
-			Character{"Alex", "Fighter"},
-			Attributes{100, 10},
-			Monster{},
+	want := []Prefab{
+		Prefab{
+			&Info{"Alex", "Fighter"},
+			&Attributes{100, 10},
 		},
-		[]interface{}{
-			Character{"Jayden", "Wizard"},
-			Attributes{90, 20},
-			Monster{},
+		Prefab{
+			&Info{"Jayden", "Wizard"},
+			&Attributes{90, 20},
+		},
+		Prefab{
+			&Info{"Mary", "Queen"},
+			nil,
 		},
 	}
 
-	reader := csvstruct.NewReader(csv.NewReader(strings.NewReader(testData)))
-	reader.SetSchema([]interface{}{Character{}, Attributes{}, Monster{}})
+	reader := csvstruct.NewReader[Prefab](csv.NewReader(strings.NewReader(testData)))
 
+	var got Prefab
 	for {
-		got, err := reader.Read()
+		err := reader.Read(&got)
 		if err == io.EOF {
 			break
 		}
@@ -81,47 +85,8 @@ func TestReader(t *testing.T) {
 			t.Fatalf("Read() err = %v; want %v", err, nil)
 		}
 
-		if diff := cmp.Diff(got, want[0]); diff != "" {
-			t.Fatalf("Read() = %v; want %v\ndiff: %v", got, want[0], diff)
-		}
-		want = want[1:]
-	}
-}
-
-type Prototype struct {
-	Character  Character
-	Attributes Attributes
-	Monster    Monster
-}
-
-func TestReader_SetPrototypeSchema(t *testing.T) {
-	want := [][]interface{}{
-		[]interface{}{
-			Character{"Alex", "Fighter"},
-			Attributes{100, 10},
-			Monster{},
-		},
-		[]interface{}{
-			Character{"Jayden", "Wizard"},
-			Attributes{90, 20},
-			Monster{},
-		},
-	}
-
-	reader := csvstruct.NewReader(csv.NewReader(strings.NewReader(testData)))
-	reader.SetPrototypeSchema(reflect.TypeOf(Prototype{}))
-
-	for {
-		got, err := reader.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			t.Fatalf("Read() err = %v; want %v", err, nil)
-		}
-
-		if diff := cmp.Diff(got, want[0]); diff != "" {
-			t.Fatalf("Read() = %v; want %v\ndiff: %v", got, want[0], diff)
+		if diff := cmp.Diff(want[0], got); diff != "" {
+			t.Fatalf("Read() diff = %v", diff)
 		}
 		want = want[1:]
 	}

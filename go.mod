@@ -6,3 +6,5 @@ require (
 	github.com/google/go-cmp v0.6.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 )
+
+require github.com/mitchellh/mapstructure v1.5.0 // indirect

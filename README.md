@@ -11,36 +11,44 @@ Import spreadsheets:
 Into Go types:
 
 ```go
-type CharacterInfo struct { Name string }
-type CharacterHP struct { HP int }
-type CharacterDamage struct { Damage int }
+type Info struct { Name string }
+type HP struct { HP int }
+type Damage struct { Damage int }
+
+type Prefab struct {
+  Info *Info
+  HP *HP
+  Damage *Damage
+}
 ```
 
 Get typed data:
 
 ```go
-CharacterInfo{"Death 1"}, CharacterInfo{"Death 2"}, CharacterInfo{"Death 3"}, ...
-CharacterHP{5}, CharacterHP{10}, CharacterHP{15}, ...
-CharacterDamage{100}, CharacterDamage{200}, CharacterDamage{300}, ...
+Prefab{Info{"Death 1"}, HP{5}, Damage{100}}
+Prefab{Info{"Death 2"}, HP{10}, Damage{200}}
+Prefab{Info{"Death 3"}, HP{15}, Damage{300}}
 ```
 
-When working with Google Sheets or Microsoft Excel, export data to CSV and import it to your program using the csvstruct library.
+When working with Google Sheets or Microsoft Excel, export data to CSV and
+import it to your program using the csvstruct library.
 
 ## Example
 
 Let's assume the following CSS file:
 
 ```css
-Character.Name,Character.Class,Attributes.HP,Attributes.Damage
+Info.Name,Info.Class,Attributes.HP,Attributes.Damage
 Alex,Fighter,100,10
 Jayden,Wizard,90,20
+Mary,Queen,,
 ...
 ```
 
 The following program uses csvstruct library to import the data above:
 
 ```go
-type Character struct {
+type Info struct {
     Name  string
     Class string
 }
@@ -50,11 +58,16 @@ type Attributes struct {
     Damage int
 }
 
-reader := csvstruct.NewReader(csv.NewReader(strings.NewReader(testData)))
-reader.SetSchema([]interface{}{Character{}, Attributes{}})
+type Prefab struct {
+    Info       *Info
+    Attributes *Attributes
+}
 
+reader := csvstruct.NewReader[Prefab](csv.NewReader(strings.NewReader(testData)))
+
+var prefab Prefab
 for {
-    components, err := reader.Read()
+    err := reader.Read(&prefab)
     if err == io.EOF {
         break
     }
@@ -62,12 +75,8 @@ for {
         panic(err)
     }
 
-    // components[0] contains Character, e.g., {"Alex", "Fighter"}, {"Jayden", "Wizard"}, etc.
-    // components[1] contains Attributes, e.g., {100, 10}, {90, 20}, etc.
-    
-    // The components have the correct types, e.g., the following assertions are true:
-    components[0].(Character)  // True.
-    components[1].(Attributes)  // True.
+    fmt.Printf("%v\n", prefab.Info)
+    fmt.Printf("%v\n", prefab.Attributes)
 }
 ```
 
@@ -79,30 +88,21 @@ The CSV data must have the following format:
 
 The first row of the CSV data is the header and it must be present.
 
-Each header column contains the name of a component followed optionally by a
-period `.` and a field name, e.g., `MyComponent.MyField`. It's also allowed to
-specify only the component name, e.g., `MyComponent`.
+Each header column contains the name of a component followed by a period `.` and
+a field name, e.g., `MyComponent.MyField`.
 
-The `MyComponent` must correspond to a Go type with the same name. Package names
-associated with the type are not used. For example, if the full Go type name is
-`mypackage.MyComponent`, only `MyComponent` is used.
+The `MyComponent.MyField` must be valid, i.e., `MyComponent` must be a valid
+field name of the type `T` passed to `NewReader`, and `MyField` must be a valid
+field of `MyComponent`.
 
-If a field name is given, e.g., `MyField`, it must be a valid field of
-`MyComponent` and it must be capitalized (i.e., exported).
-
-If a field name is not given, then the component is default initialized and
-returned by `Reader.Read`. This allows adding default initialized components to
-entities through CSV, without having to add special rules in the CSV parsing
-code.
+If a cell is not given, then it's field is default initialized according to the
+default initialization of Go. For example, pointers are default initialized to
+`nil` and value types are default initialized to `0`, empty structs, empty
+arrays, etc.
 
 It's not required to put in the CSV header all the fields of
 `MyComponent`. Rather, only the fields that should be imported by those CSV data
 are present.
-
-It's possible to have multiple CSV headers. The library caller must be able to
-determine when a new CSV header is about to come up as the next row. In this
-case, the caller can use `Reader.Clear`, optionally followed by
-`Reader.SetSchema`, to start a new table of CSV data.
 
 ### Data rows
 
@@ -121,3 +121,11 @@ A field of type `Int` can either an empty or non-empty cell containing
 a numerical value.
 
 Empty cells default initialize fields according to Go semantics.
+
+### Multiple tables in the same CSV
+
+It's possible to have multiple "tables" in the same CSV file. Tables are
+separate by CSV header rows. The library caller must be able to determine when a
+new CSV header is about to come up as the next row. In this case, the caller can
+use `Reader.Clear` to start a new table of CSV data, followed by `Reader.Read`
+to parse the new table.
