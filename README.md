@@ -6,7 +6,7 @@ Import multiply-typed structured data from CSV to Go types.
 
 Import spreadsheets:
 
-![screenshot](https://github.com/user-attachments/assets/42f40d40-47ea-4d2e-89d3-34fabe38a528)
+![screenshot](https://github.com/user-attachments/assets/62e920eb-d92f-4419-910f-384bbbd6f6c0)
 
 Into Go types:
 
