@@ -102,7 +102,7 @@ func (r *Reader[T]) parseRow(t *T) error {
 
 		var value interface{}
 		switch descriptor.kind {
-		case reflect.Int:
+		case reflect.Int, reflect.Int32, reflect.Int64:
 			number, err := strconv.Atoi(cell)
 			if err != nil {
 				return err
