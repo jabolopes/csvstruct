@@ -94,7 +94,7 @@ The CSV data must have the following format:
 The first row of the CSV data is the header and it must be present.
 
 Each header column contains the name of a component followed by a period `.` and
-a field name, e.g., `MyComponent.MyField`.
+an optional field name, e.g., `MyComponent.MyField`.
 
 The `MyComponent.MyField` must be valid, i.e., `MyComponent` must be a valid
 field name of the type `T` passed to `NewReader`, and `MyField` must be a valid
