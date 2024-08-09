@@ -108,6 +108,18 @@ func (r *Reader[T]) parseRow(t *T) error {
 				return err
 			}
 			value = number
+		case reflect.Float32:
+			number, err := strconv.ParseFloat(cell, 32)
+			if err != nil {
+				return err
+			}
+			value = number
+		case reflect.Float64:
+			number, err := strconv.ParseFloat(cell, 64)
+			if err != nil {
+				return err
+			}
+			value = number
 		case reflect.String:
 			value = cell
 		}
